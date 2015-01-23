@@ -6,7 +6,12 @@ using System.Threading.Tasks;
 
 namespace HydraAPI
 {
-    public class Class1
+    public class Initialize
     {
+        public void start_hadoop(string path)
+        {
+            Process.Start("cmd", @"/c cd " + path + " && start-dfs.cmd");
+        }
+          
     }
 }
