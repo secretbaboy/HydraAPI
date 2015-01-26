@@ -12,7 +12,7 @@ namespace HydraAPI
 {
     public class Initialize
     {
-        //hello perrin!
+     
         bool hadoop_initialize = false;
         String hadoop_path;
         
