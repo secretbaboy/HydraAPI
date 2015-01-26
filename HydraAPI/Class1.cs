@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using SHDocVw;
 using System.Net;
+using System.Xml;
 namespace HydraAPI
 {
     public class Initialize
@@ -45,7 +46,7 @@ namespace HydraAPI
 
                     InternetExplorer IE = new InternetExplorer();
                     object Empty = 0;
-                    object URL = "http://192.168.0.12:50070";
+                    object URL = "http://10.100.219.94:50070";
                     IE.Visible = true;
                     IE.Navigate2(ref URL, ref Empty, ref Empty, ref Empty, ref Empty);
                     write.WriteLine(hadoop_bin_path);
@@ -159,6 +160,87 @@ namespace HydraAPI
 
            
         }
+
+        public void read_xml()
+        {
+            using (XmlReader reader = XmlReader.Create("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml"))
+            {
+                while (reader.Read())
+                {
+                    if (reader.IsStartElement())
+                    {
+                        switch (reader.Name)
+                        {
+                            case "configuration":
+                                Console.WriteLine("Start <configuration> element.");
+                                break;
+                            case "property":
+                                Console.WriteLine("Start <property> element.");
+                                break;
+                            case "name":
+                                Console.WriteLine("Start <name> element.");
+                                break;
+                            case "value":
+                                Console.WriteLine("Start <value> element.");
+
+                                if (reader.Read())
+                                {
+                                    try
+                                    {
+                                        if (reader.Value.Trim() == "")
+                                        {
+                                            throw new ArgumentException("You need to specify an IP at the <value> element of core-site.xml.");
+
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("  Text node: " + reader.Value.Trim());
+                                            
+                                        }
+
+
+                                      
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Console.WriteLine(e);
+                                    }
+                                }
+
+                                break;
+                        }
+
+                    }
+                }
+     
+            }
+
+        }
+
+
+    
+
+
+        public void write_xml()
+        {
+            using (XmlWriter writer = XmlWriter.Create("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml"))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+                writer.WriteStartElement("property");
+                
+
+                writer.WriteElementString("value", "hdfs://192.999.22.22");
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+
+            }
+
+            
+        
 
 
 
