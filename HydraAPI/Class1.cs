@@ -12,7 +12,7 @@ namespace HydraAPI
 {
     public class Initialize
     {
-        //hello perrin!
+        
      
         bool hadoop_initialize = false;
         String hadoop_path;
@@ -20,6 +20,8 @@ namespace HydraAPI
         public void start_hadoop(string path)
         {
             //  ProcessStartInfo processStartInfo = new ProcessStartInfo("cmd", @"/c cd " +path+"&& start-dfs.cmd");
+            //Kelvin,ung path db dapat predefined na? hndi ung user bahala kung san ilalagay ung path?
+
             this.hadoop_path = path;
             string hadoop_sbin_path = "cd " + hadoop_path + "\\sbin";
             string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
