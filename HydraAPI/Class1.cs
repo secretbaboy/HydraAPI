@@ -8,13 +8,14 @@ using System.IO;
 using SHDocVw;
 using System.Net;
 using System.Xml;
+using System.Net.Sockets;
 namespace HydraAPI
 {
     public class Initialize
     {
         bool hadoop_initialize = false;
         String hadoop_path;
-        
+
         public void start_hadoop(string path)
         {
             //  ProcessStartInfo processStartInfo = new ProcessStartInfo("cmd", @"/c cd " +path+"&& start-dfs.cmd");
@@ -25,13 +26,14 @@ namespace HydraAPI
             string mkdir = "hadoop fs -mkdir -p " + "/user/" + Environment.UserName + "/Folder";
 
 
-         
+
             //  processStartInfo.CreateNoWindow = false;  // remove the command line where you type start-dfs initially
+            check_namenode_ip(hadoop_path);
 
             Process process = new Process();
             process.StartInfo = initializeCmd();
             process.Start();
-         
+
 
             StreamWriter write = process.StandardInput;
 
@@ -58,7 +60,7 @@ namespace HydraAPI
                     Console.WriteLine(e);
                     Console.ReadKey();
                 }
-             
+
 
             }
             else
@@ -91,7 +93,7 @@ namespace HydraAPI
             processStartInfo.RedirectStandardInput = true;
             processStartInfo.UseShellExecute = false;
             return processStartInfo;
-            
+
 
         }
 
@@ -99,19 +101,19 @@ namespace HydraAPI
         public void file_store(string file_path)
         {
             string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
-            string copyFromLocal = "hadoop fs -copyFromLocal "+file_path+" /user/"+Environment.UserName + "/Folder";
+            string copyFromLocal = "hadoop fs -copyFromLocal " + file_path + " /user/" + Environment.UserName + "/Folder";
 
             bool file_path_has_space = file_path.Contains(" ");
 
-            if ((hadoop_initialize == false && file_path_has_space == true)|| hadoop_initialize == true && file_path_has_space == true)
+            if ((hadoop_initialize == false && file_path_has_space == true) || hadoop_initialize == true && file_path_has_space == true)
             {
                 Console.WriteLine("HAdoop di pa initialize or May ispace");
                 Console.ReadKey();
             }
-            else 
+            else
             {
 
-               
+
                 Process process = new Process();
                 process.StartInfo = initializeCmd();
                 process.Start();
@@ -121,9 +123,9 @@ namespace HydraAPI
                 write.WriteLine(copyFromLocal);
                 Console.WriteLine("Hadoop naka initialize na at Walang ispace at na kopya na");
                 Console.ReadKey();
-                
-                 
-                
+
+
+
             }
 
         }
@@ -131,7 +133,7 @@ namespace HydraAPI
         public void delete(string file_name)
         {
             string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
-            string delete = "hdfs dfs -rm /user/" + Environment.UserName + "/Folder/"+file_name;
+            string delete = "hdfs dfs -rm /user/" + Environment.UserName + "/Folder/" + file_name;
 
             bool file_path_has_space = file_name.Contains(" ");
 
@@ -158,12 +160,12 @@ namespace HydraAPI
 
             }
 
-           
+
         }
 
-        public void read_xml()
+        public void check_namenode_ip(string hadoop_path)
         {
-            using (XmlReader reader = XmlReader.Create("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml"))
+            using (XmlReader reader = XmlReader.Create(hadoop_path + "\\etc\\hadoop\\core-site.xml"))
             {
                 while (reader.Read())
                 {
@@ -189,21 +191,25 @@ namespace HydraAPI
                                     {
                                         if (reader.Value.Trim() == "")
                                         {
-                                            throw new ArgumentException("You need to specify an IP at the <value> element of core-site.xml.");
+                                            throw new ArgumentException("\nYou need to specify an IP at the <value> element of core-site.xml.");
+
+
 
                                         }
-                                        else
-                                        {
-                                            Console.WriteLine("  Text node: " + reader.Value.Trim());
+                                        /*    else
+                                            {
+                                                Console.WriteLine("  Text node: " + reader.Value.Trim());
                                             
-                                        }
+                                            }
 
+                                            */
 
-                                      
                                     }
                                     catch (Exception e)
                                     {
-                                        Console.WriteLine(e);
+                                        Console.WriteLine(e.ToString());
+                                        Console.ReadKey();
+                                        System.Environment.Exit(0);
                                     }
                                 }
 
@@ -212,16 +218,22 @@ namespace HydraAPI
 
                     }
                 }
-     
+
             }
 
         }
 
 
-    
 
+        public void setNameNodeIP(String IPAddress)
+        {
+            String NameNodeIPAddress = IPAddress;
 
-        public void write_xml()
+            write_xml(NameNodeIPAddress);
+
+        }
+
+        public void write_xml(String NameNodeIPAddress)
         {
             using (XmlWriter writer = XmlWriter.Create("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml"))
             {
@@ -229,18 +241,54 @@ namespace HydraAPI
                 writer.WriteStartDocument();
                 writer.WriteStartElement("configuration");
                 writer.WriteStartElement("property");
-                
 
-                writer.WriteElementString("value", "hdfs://192.999.22.22");
+
+                writer.WriteElementString("value", NameNodeIPAddress.Insert(0, "hdfs://"));
                 writer.WriteEndElement();
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
 
+
+            XmlDocument doc = new XmlDocument();
+
+            doc.Load("C:\\hadoop-2.3.0\\etc\\hadoop\\hdfs-site.xml");
+            XmlNode node = doc.DocumentElement;
+
+            int flag = 0;
+
+            foreach (XmlElement element in node.SelectNodes("//property"))
+
+            //     foreach (XmlNode node1 in element.ChildNodes)
+            //foreach (XmlNode node2 in node1.ChildNodes)
+            {
+
+                if (element.ChildNodes[0].InnerText.Equals("dfs.http.address"))
+                {
+                    element.ChildNodes[1].InnerText = NameNodeIPAddress += ":50070";
+                    doc.Save("C:\\hadoop-2.3.0\\etc\\hadoop\\hdfs-site.xml");
+
+                }
+
+
+
+
+
             }
 
-            
-        
+
+
+            //         Console.WriteLine(doc.GetElementsByTagName("property")[0].ChildNodes[0]);
+
+
+            Console.ReadKey();
+            System.Environment.Exit(0);
+        }
+
+
+
+
+
 
 
 
