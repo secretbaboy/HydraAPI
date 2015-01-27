@@ -235,7 +235,7 @@ namespace HydraAPI
 
         public void write_xml(String NameNodeIPAddress)
         {
-            using (XmlWriter writer = XmlWriter.Create("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml"))
+       /*     using (XmlWriter writer = XmlWriter.Create("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml"))
             {
 
                 writer.WriteStartDocument();
@@ -248,7 +248,16 @@ namespace HydraAPI
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
+            */
+            XmlDocument docz = new XmlDocument();
+            docz.Load("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml");
+            XmlNode nodez = docz.DocumentElement;
 
+            nodez.SelectSingleNode("//property//value").InnerText= NameNodeIPAddress.Insert(0, "hdfs://");
+            Console.ReadKey();
+            docz.Save("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml");
+
+    
 
             XmlDocument doc = new XmlDocument();
 
