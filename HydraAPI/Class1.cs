@@ -14,21 +14,38 @@ namespace HydraAPI
     public class Initialize
     {
         bool hadoop_initialize = false;
-        String hadoop_path;
+        private string hadoop_path;
+        private string hadoop_bin_path;
+        private string hadoop_sbin_path;
 
-        public void start_hadoop(string path)
+        private string cmd_hadoop_sbin_path;
+        private string cmd_hadoop_bin_path;
+
+
+        public Initialize(string hadoop_path)
+        {
+            this.hadoop_path = hadoop_path;
+            hadoop_bin_path = hadoop_path + "\\sbin";
+            hadoop_sbin_path = hadoop_path + "\\sbin";
+
+            cmd_hadoop_bin_path = "cd " + hadoop_sbin_path;
+            cmd_hadoop_sbin_path = "cd " + hadoop_bin_path;
+        }
+
+
+        public void start_hadoop()
         {
             //  ProcessStartInfo processStartInfo = new ProcessStartInfo("cmd", @"/c cd " +path+"&& start-dfs.cmd");
-            this.hadoop_path = path;
-            string hadoop_sbin_path = "cd " + hadoop_path + "\\sbin";
-            string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
-            string start_dfs = "start-dfs.cmd";
-            string mkdir = "hadoop fs -mkdir -p " + "/user/" + Environment.UserName + "/Folder";
+
+        //    string cmd_hadoop_sbin_path = "cd " + hadoop_sbin_path;
+         //   string cmd_hadoop_bin_path = "cd " + hadoop_bin_path;
+            string cmd_start_dfs = "start-dfs.cmd";
+            string cmd_mkdir = "hadoop fs -mkdir -p " + "/user/" + Environment.UserName + "/Folder";
 
 
 
             //  processStartInfo.CreateNoWindow = false;  // remove the command line where you type start-dfs initially
-            check_namenode_ip(hadoop_path);
+            check_namenode_ip();
 
             Process process = new Process();
             process.StartInfo = initializeCmd();
@@ -39,10 +56,12 @@ namespace HydraAPI
 
             if (hadoop_sbin_path.EndsWith("sbin"))
             {
-                write.WriteLine(hadoop_sbin_path);
-                write.WriteLine(start_dfs);
-                System.Threading.Thread.Sleep(9000);
-                try
+                write.WriteLine(cmd_hadoop_sbin_path);
+                write.WriteLine(cmd_start_dfs);
+               System.Threading.Thread.Sleep(9000);
+
+                // Internet Explorer Launch code 
+            /*    try
                 {
 
 
@@ -51,8 +70,8 @@ namespace HydraAPI
                     object URL = "http://10.100.219.94:50070";
                     IE.Visible = true;
                     IE.Navigate2(ref URL, ref Empty, ref Empty, ref Empty, ref Empty);
-                    write.WriteLine(hadoop_bin_path);
-                    write.WriteLine(mkdir);
+                    write.WriteLine(cmd_hadoop_bin_path);
+                    write.WriteLine(cmd_mkdir);
                     hadoop_initialize = true;
                 }
                 catch (Exception e)
@@ -60,6 +79,8 @@ namespace HydraAPI
                     Console.WriteLine(e);
                     Console.ReadKey();
                 }
+             
+             */
 
 
             }
@@ -100,7 +121,7 @@ namespace HydraAPI
 
         public void file_store(string file_path)
         {
-            string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+          //  string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
             string copyFromLocal = "hadoop fs -copyFromLocal " + file_path + " /user/" + Environment.UserName + "/Folder";
 
             bool file_path_has_space = file_path.Contains(" ");
@@ -119,7 +140,7 @@ namespace HydraAPI
                 process.Start();
 
                 StreamWriter write = process.StandardInput;
-                write.WriteLine(hadoop_bin_path);
+                write.WriteLine(cmd_hadoop_bin_path);
                 write.WriteLine(copyFromLocal);
                 Console.WriteLine("Hadoop naka initialize na at Walang ispace at na kopya na");
                 Console.ReadKey();
@@ -132,7 +153,7 @@ namespace HydraAPI
 
         public void delete(string file_name)
         {
-            string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+           // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
             string delete = "hdfs dfs -rm /user/" + Environment.UserName + "/Folder/" + file_name;
 
             bool file_path_has_space = file_name.Contains(" ");
@@ -151,7 +172,7 @@ namespace HydraAPI
                 process.Start();
 
                 StreamWriter write = process.StandardInput;
-                write.WriteLine(hadoop_bin_path);
+                write.WriteLine(cmd_hadoop_bin_path);
                 write.WriteLine(delete);
                 Console.WriteLine("Hadoop naka initialize na at Walang ispace at na delete na");
                 Console.ReadKey();
@@ -163,7 +184,7 @@ namespace HydraAPI
 
         }
 
-        public void check_namenode_ip(string hadoop_path)
+        public void check_namenode_ip()
         {
             using (XmlReader reader = XmlReader.Create(hadoop_path + "\\etc\\hadoop\\core-site.xml"))
             {
