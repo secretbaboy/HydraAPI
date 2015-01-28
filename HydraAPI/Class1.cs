@@ -118,13 +118,48 @@ namespace HydraAPI
 
         }
 
+        public void file_store_hadoop_to_local(string hdfs_file_path,string local_file_path)
+        {
+            string copyToLocal = "hdfs dfs -copyToLocal " + hdfs_file_path + " " + local_file_path;
 
-        public void file_store(string file_path)
+            bool file_path_has_space = hdfs_file_path.Contains(" ");
+            bool file_path_has_space2 = local_file_path.Contains(" ");
+
+
+            if ((hadoop_initialize == false && file_path_has_space == true) || hadoop_initialize == true && file_path_has_space == true)
+            {
+                Console.WriteLine("HAdoop di pa initialize or May ispace");
+                Console.ReadKey();
+                System.Environment.Exit(0);
+               
+            }
+            else
+            {
+
+
+                Process process = new Process();
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(copyToLocal);
+                Console.WriteLine("Hadoop naka initialize na at Walang ispace at na kopya na");
+                Console.ReadKey();
+
+
+
+            }
+
+
+        }
+
+        public void file_store_local_to_hadoop(string local_file_path)
         {
           //  string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
-            string copyFromLocal = "hadoop fs -copyFromLocal " + file_path + " /user/" + Environment.UserName + "/Folder";
+            string copyFromLocal = "hadoop fs -copyFromLocal " + local_file_path + " /user/" + Environment.UserName + "/Folder";
 
-            bool file_path_has_space = file_path.Contains(" ");
+            bool file_path_has_space = local_file_path.Contains(" ");
 
             if ((hadoop_initialize == false && file_path_has_space == true) || hadoop_initialize == true && file_path_has_space == true)
             {
