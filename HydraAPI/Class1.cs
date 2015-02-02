@@ -9,6 +9,8 @@ using SHDocVw;
 using System.Net;
 using System.Xml;
 using System.Net.Sockets;
+using System.Threading;
+using System.Text.RegularExpressions;
 namespace HydraAPI
 {
     public class Initialize
@@ -25,11 +27,11 @@ namespace HydraAPI
         public Initialize(string hadoop_path)
         {
             this.hadoop_path = hadoop_path;
-            hadoop_bin_path = hadoop_path + "\\sbin";
+            hadoop_bin_path = hadoop_path + "\\bin";
             hadoop_sbin_path = hadoop_path + "\\sbin";
 
-            cmd_hadoop_bin_path = "cd " + hadoop_sbin_path;
-            cmd_hadoop_sbin_path = "cd " + hadoop_bin_path;
+            cmd_hadoop_bin_path = "cd " + hadoop_bin_path;
+            cmd_hadoop_sbin_path = "cd " + hadoop_sbin_path;
         }
 
 
@@ -58,7 +60,7 @@ namespace HydraAPI
             {
                 write.WriteLine(cmd_hadoop_sbin_path);
                 write.WriteLine(cmd_start_dfs);
-               System.Threading.Thread.Sleep(9000);
+               System.Threading.Thread.Sleep(12000);
 
                 // Internet Explorer Launch code 
             /*    try
@@ -102,6 +104,7 @@ namespace HydraAPI
                  Console.WriteLine("Launch Success!");
                  Console.ReadKey();
              }*/
+            process.Close();
 
         }
 
@@ -112,11 +115,116 @@ namespace HydraAPI
             processStartInfo.Verb = "runas"; // run as administrator
             processStartInfo.LoadUserProfile = true;
             processStartInfo.RedirectStandardInput = true;
+           // processStartInfo.RedirectStandardOutput = true;
             processStartInfo.UseShellExecute = false;
             return processStartInfo;
 
 
         }
+
+        public void list_all_files_from_folder(String hdfs_file_path)
+        {
+            string output = string.Empty;
+            string error = string.Empty;
+            string ls = "hdfs dfs -ls " + hdfs_file_path;
+            bool file_path_has_space = hdfs_file_path.Contains(" ");
+
+            if ((hadoop_initialize == false && file_path_has_space == true) || hadoop_initialize == true && file_path_has_space == true)
+            {
+                Console.WriteLine("HAdoop di pa initialize or May ispace");
+                Console.ReadKey();
+                System.Environment.Exit(0);
+
+            }
+            else
+            {
+
+                ProcessStartInfo processStartInfo = new ProcessStartInfo("cmd", @"/c cd " + hadoop_bin_path + "&& " + ls);
+                processStartInfo.RedirectStandardOutput = true;
+                processStartInfo.RedirectStandardError = true;
+                processStartInfo.WindowStyle = ProcessWindowStyle.Normal;
+                processStartInfo.UseShellExecute = false;
+
+                Process process =  Process.Start(processStartInfo);
+ 
+
+              
+           //     Console.WriteLine("Hadoop naka initialize na at Walang ispace at na kopya na");
+             //   Console.ReadKey();
+                String s = string.Empty;
+                
+                //gets the list of files in a directory and adds it in the array
+                 List<string> myCollection = new List<string>();
+
+
+                using (StreamReader streamReader = process.StandardOutput)
+                {
+                    while (!streamReader.EndOfStream)
+                    {
+                        s = streamReader.ReadLine();
+                        if(!String.IsNullOrEmpty(s.Trim()))
+                        {
+                      
+                            myCollection.Add(s);
+              
+                        }
+                    }
+        
+                  //  output = streamReader.ReadToEnd();
+                }
+                // Remove Found x items from the array because it would useless
+                myCollection.RemoveAt(0);
+
+                using (StreamReader streamReader = process.StandardError)
+                {
+                    error = streamReader.ReadToEnd();
+                }
+
+
+                int startIndex = 0;
+                int lastIndex =0;
+            
+                Console.WriteLine("The following output was detected:");
+                foreach (string dirEntries in myCollection)
+	            {
+               //     startIndex = 0;
+                dirEntries.Trim();
+                   
+                /*    for (int i = 0; i < dirEntries.Length; i++)
+                    {
+                        if (dirEntries[i] == '/' && dirEntries[i+1] == 'u')
+                        {
+                            startIndex = i;
+                        }
+                        else if(i+i>dirEntries.Length)
+                        {
+                            lastIndex=i;
+                        }
+                    }
+
+
+                     Console.WriteLine("Index start of / " + startIndex);
+                     Console.WriteLine("Index ends in / " + lastIndex);
+                     Console.WriteLine("LAst index {0}", dirEntries[lastIndex]);
+                     Console.WriteLine("Index  length/ " + dirEntries.Length);
+                 * */
+
+
+
+                  Console.WriteLine(dirEntries);
+	            }
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Console.WriteLine("The following error was detected:");
+                    Console.WriteLine(error);
+                }
+
+                Console.Read();
+
+
+            }
+        }
+
 
         public void file_store_hadoop_to_local(string hdfs_file_path,string local_file_path)
         {
@@ -171,13 +279,16 @@ namespace HydraAPI
 
 
                 Process process = new Process();
+
                 process.StartInfo = initializeCmd();
                 process.Start();
 
                 StreamWriter write = process.StandardInput;
                 write.WriteLine(cmd_hadoop_bin_path);
                 write.WriteLine(copyFromLocal);
+
                 Console.WriteLine("Hadoop naka initialize na at Walang ispace at na kopya na");
+
                 Console.ReadKey();
 
 
@@ -186,6 +297,10 @@ namespace HydraAPI
 
         }
 
+       
+  
+
+      
         public void delete(string file_name)
         {
            // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
@@ -351,10 +466,114 @@ namespace HydraAPI
         }
 
 
+        public void setup_hadoop_configs(String NameNodeIPAddress,String replication_factor)
+        {
+            string six_indents = "            ";
+            string five_indents = "     ";
+            XmlWriterSettings settings = new XmlWriterSettings
+            {
+                Indent = true,
+                IndentChars = "   ",
+                NewLineChars = "\r\n",
+                NewLineHandling = NewLineHandling.Replace
+            };
+            
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path+"\\etc\\hadoop\\core-site.xml",settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+                writer.WriteStartElement("property");
+
+
+                writer.WriteElementString("value", NameNodeIPAddress.Insert(0, "hdfs://"));
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path+"\\etc\\hadoop\\hdfs-site.xml",settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.replication");
+                writer.WriteElementString("value", replication_factor);
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.data.dir");
+                writer.WriteElementString("value", "file:/hadoop/data/dfs/namenode");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.datanode.data.dir");
+                writer.WriteElementString("value", "file:/hadoop/data/dfs/datanode");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.permissions");
+                writer.WriteElementString("value", "false");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.http.address");
+                writer.WriteElementString("value", NameNodeIPAddress+":50070");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.webhdfs.enbled");
+                writer.WriteElementString("value", "true");
+                writer.WriteElementString("description", "to enable webhdfs");
+                writer.WriteElementString("final", "true");
+                writer.WriteEndElement();
 
 
 
+                writer.WriteEndElement();
 
+                writer.WriteEndDocument();
+            }
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path + "\\etc\\hadoop\\yarn-site.xml", settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.nodemanager.aux-services");
+                writer.WriteElementString("value", "mapreduce_shuffle");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.nodemanager.aux-services.mapreduce.shuffle.class");
+                writer.WriteElementString("value", "org.apache.hadoop.mapred.ShuffleHandler");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.application.classpath");
+                writer.WriteElementString("value", Environment.NewLine + six_indents + "%HADOOP_HOME%\\etc\\hadoop," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\common\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\common\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\hdfs\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\hdfs\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\mapreduce\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\mapreduce\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\yarn\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\yarn\\lib\\*"+
+                                                   Environment.NewLine + five_indents
+                                                   ); 
+
+                writer.WriteEndElement();
+
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+
+            Console.WriteLine("Finish!");
+            Console.ReadKey();
+        }
+              
 
 
 
