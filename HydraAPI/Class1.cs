@@ -467,9 +467,6 @@ namespace HydraAPI
 
         public void populate_slaves_file(string[] list_ip){
             string[] ip_list = list_ip;
-            ip_list[0] = "192.168.0.16";
-            ip_list[1] = "192.168.0.17";
-            ip_list[2] = "192.168.0.18";
             foreach(string value in ip_list){
                 using (StreamWriter writer = new StreamWriter(hadoop_path+"\\etc\\hadoop\\slaves",true))
                 {
