@@ -465,7 +465,25 @@ namespace HydraAPI
             System.Environment.Exit(0);
         }
 
+        public void populate_slaves_file(string[] list_ip){
+            string[] ip_list = list_ip;
+            ip_list[0] = "192.168.0.16";
+            ip_list[1] = "192.168.0.17";
+            ip_list[2] = "192.168.0.18";
+            foreach(string value in ip_list){
+                using (StreamWriter writer = new StreamWriter(hadoop_path+"\\etc\\hadoop\\slaves",true))
+                {
+                    writer.WriteLine(value);
+                }
+            }
 
+        }
+        public void clear_slaves_file()
+        {
+            StreamWriter strm = File.CreateText(@hadoop_path + "\\etc\\hadoop\\slaves");
+            strm.Flush();
+            strm.Close();   
+        }
         public void setup_hadoop_configs(String NameNodeIPAddress,String replication_factor)
         {
             string six_indents = "            ";
