@@ -34,6 +34,7 @@ namespace HydraAPI
             cmd_hadoop_sbin_path = "cd " + hadoop_sbin_path;
         }
 
+     
 
         public void start_hadoop()
         {
@@ -124,6 +125,25 @@ namespace HydraAPI
 
         }
 
+        public void rebalanceCluster(string threshold_percentage)
+        {
+            string rebalance = "hadoop balancer -threshold "+ threshold_percentage;
+
+            while (true)
+            {
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(rebalance);
+                Thread.Sleep(30000);
+
+
+            }
+        }
 
 
         public void formatNameNode()
