@@ -124,6 +124,8 @@ namespace HydraAPI
 
         }
 
+
+
         public void formatNameNode()
         {
             
@@ -162,18 +164,19 @@ namespace HydraAPI
 
         }
 
-        public void formatJournalNodes()
-        {
-            string journalNodeFormat = "hdfs namenode -initializeSharedEdits -force";
-            if (hadoop_initialize == false)
-            {
-                Console.WriteLine("HAdoop di pa initialize");
+
+
+        public void setReplication(String numOfReplicas, String path){
+            string numOfRep = numOfReplicas;
+            string setRep = "hdfs dfs -setrep -w "+numOfRep+" "+path;
+
+            if(hadoop_initialize==false){
+                 Console.WriteLine("HAdoop di pa initialize");
                 Console.ReadKey();
+                System.Environment.Exit(0);
+
             }
-            else
-            {
-
-
+            else{
                 Process process = new Process();
 
                 process.StartInfo = initializeCmd();
@@ -181,49 +184,16 @@ namespace HydraAPI
 
                 StreamWriter write = process.StandardInput;
                 write.WriteLine(cmd_hadoop_bin_path);
-                write.WriteLine(journalNodeFormat);
+                write.WriteLine(setRep);
 
-                Console.WriteLine("Journalnode format success!");
-
+                Console.WriteLine("Replication Factor modified!");
                 Console.ReadKey();
 
-
-
             }
-
-
+ 
         }
 
-        public void getLatestCheckpoint()
-        {
-            string journalNodeFormat = "hdfs namenode -bootstrapStandby -force";
-            if (hadoop_initialize == false)
-            {
-                Console.WriteLine("HAdoop di pa initialize");
-                Console.ReadKey();
-            }
-            else
-            {
-
-
-                Process process = new Process();
-
-                process.StartInfo = initializeCmd();
-                process.Start();
-
-                StreamWriter write = process.StandardInput;
-                write.WriteLine(cmd_hadoop_bin_path);
-                write.WriteLine(journalNodeFormat);
-
-                Console.WriteLine("Successfully copied latest checkpoint success!");
-
-                Console.ReadKey();
-
-
-
-            }
-        }
-
+        
         public void list_all_files_from_folder(String hdfs_file_path)
         {
             string output = string.Empty;
@@ -354,7 +324,7 @@ namespace HydraAPI
                 StreamWriter write = process.StandardInput;
                 write.WriteLine(cmd_hadoop_bin_path);
                 write.WriteLine(copyToLocal);
-                Console.WriteLine("Hadoop naka initialize na at Walang ispace at na kopya na");
+                Console.WriteLine("File stored successfully!");
                 Console.ReadKey();
 
 
@@ -364,11 +334,11 @@ namespace HydraAPI
 
         }
 
-        public void file_store_local_to_hadoop(string local_file_path)
+        /*public void file_store_local_to_hadoop(string local_file_path)
         {
           //  string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
-            string copyFromLocal = "hadoop fs -copyFromLocal " + local_file_path + " /user/" + Environment.UserName + "/Folder";
-
+         //   string copyFromLocal = "hadoop fs -copyFromLocal " + local_file_path + " /user/" + Environment.UserName + "/Folder";
+            string copyFromLocal = "hadoop fs -copyFromLocal " + local_file_path + " " +"/";
             bool file_path_has_space = local_file_path.Contains(" ");
 
             if ((hadoop_initialize == false && file_path_has_space == true) || hadoop_initialize == true && file_path_has_space == true)
@@ -389,7 +359,52 @@ namespace HydraAPI
                 write.WriteLine(cmd_hadoop_bin_path);
                 write.WriteLine(copyFromLocal);
 
-                Console.WriteLine("Hadoop naka initialize na at Walang ispace at na kopya na");
+                Console.WriteLine("File stored successfully!");
+
+                Console.ReadKey();
+
+
+
+            }
+
+        }
+        */
+
+        public void file_store_local_to_hadoop(string[] local_file_paths, string destination_file_path)
+        {
+            //  string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+            //   string copyFromLocal = "hadoop fs -copyFromLocal " + local_file_path + " /user/" + Environment.UserName + "/Folder";
+            string copyFromLocal = "hdfs dfs -put ";
+            string[] dirs = local_file_paths;
+            foreach (string value in dirs)
+            {
+
+                copyFromLocal = copyFromLocal + value + " ";
+            }
+            copyFromLocal = copyFromLocal + destination_file_path;
+
+
+          //  bool file_path_has_space = local_file_path.Contains(" ");
+
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize or May ispace");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(copyFromLocal);
+
+                Console.WriteLine("File stored successfully!");
 
                 Console.ReadKey();
 
@@ -399,14 +414,134 @@ namespace HydraAPI
 
         }
 
-       
-  
+        public void moveFiles(string[] file_paths, string destination_path)
+        {
+            string move = "hdfs dfs -mv ";
+            string[] file_path = file_paths;
+     
 
+
+                  if (hadoop_initialize == false)
+                  {
+                      Console.WriteLine("HAdoop di pa initialize");
+                      Console.ReadKey();
+                  }
+                  else
+                  {
+                      foreach (string value in file_path)
+                      {
+
+                          move = move + value + " ";
+                      }
+                      move = move + destination_path;
+
+                      Process process = new Process();
+
+                      process.StartInfo = initializeCmd();
+                      process.Start();
+
+                      StreamWriter write = process.StandardInput;
+                      write.WriteLine(cmd_hadoop_bin_path);
+                      write.WriteLine(move);
+
+                      Console.WriteLine("Files move/s success!");
+
+                      Console.ReadKey();
+
+
+
+                  }
+        }
+       
+
+        public void makeDirectory(string[] directory)
+        {
+            string makeDir = "hdfs dfs -mkdir ";
+            
+
+               string[] dirs = directory;
       
+
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+                foreach (string value in dirs)
+                {
+
+                    makeDir = makeDir + value + " ";
+                }
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(makeDir);
+
+                Console.WriteLine("Directory/Directories created successfully!");
+
+                Console.ReadKey();
+
+
+
+            }
+
+
+
+        }
+
+        public void makeDirectorywithParent(string[] directory)
+        {
+            string makeDir = "hdfs dfs -mkdir -p";
+
+
+            string[] dirs = directory;
+        
+
+
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+                foreach (string value in dirs)
+                {
+
+                    makeDir = makeDir + value + " ";
+                }
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(makeDir);
+
+                Console.WriteLine("Directory/Directories created successfully!");
+
+                Console.ReadKey();
+
+
+
+            }
+
+
+        }
         public void delete(string file_name)
         {
            // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
-            string delete = "hdfs dfs -rm /user/" + Environment.UserName + "/Folder/" + file_name;
+         //   string delete = "hdfs dfs -rm /user/" + Environment.UserName + "/Folder/" + file_name;
+               string delete = "hdfs dfs -rm " + file_name;
 
             bool file_path_has_space = file_name.Contains(" ");
 
@@ -426,7 +561,7 @@ namespace HydraAPI
                 StreamWriter write = process.StandardInput;
                 write.WriteLine(cmd_hadoop_bin_path);
                 write.WriteLine(delete);
-                Console.WriteLine("Hadoop naka initialize na at Walang ispace at na delete na");
+                Console.WriteLine("Delete File Success!");
                 Console.ReadKey();
 
 
@@ -435,6 +570,77 @@ namespace HydraAPI
 
 
         }
+
+         public void deleteFileFromFolder(string file_name, string directory)
+        {
+           // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+         //   string delete = "hdfs dfs -rm /user/" + Environment.UserName + "/Folder/" + file_name;
+               string dir=directory;
+               string delete = "hdfs dfs -rm " + file_name + " " + dir;
+
+            bool file_path_has_space = file_name.Contains(" ");
+
+            if ((hadoop_initialize == false && file_path_has_space == true) || hadoop_initialize == true && file_path_has_space == true)
+            {
+                Console.WriteLine("HAdoop di pa initialize or May ispace");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(delete);
+                Console.WriteLine("Delete File From Folder Success!");
+                Console.ReadKey();
+
+
+
+            }
+
+
+        }
+
+        public void deleteRecursive(string directory)
+        {
+           // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+         //   string delete = "hdfs dfs -rm /user/" + Environment.UserName + "/Folder/" + file_name;
+               string delete = "hdfs dfs -rmr " + directory;
+
+            bool file_path_has_space = directory.Contains(" ");
+
+            if ((hadoop_initialize == false && file_path_has_space == true) || hadoop_initialize == true && file_path_has_space == true)
+            {
+                Console.WriteLine("HAdoop di pa initialize or May ispace");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(delete);
+                Console.WriteLine("Recursive Delete Successful!");
+                Console.ReadKey();
+
+
+
+            }
+
+
+        }
+
+
 
         public void check_namenode_ip()
         {
@@ -498,15 +704,15 @@ namespace HydraAPI
 
 
 
-        public void setNameNodeIP(String IPAddress)
+   /*     public void setNameNodeIP(String IPAddress)
         {
             String NameNodeIPAddress = IPAddress;
 
             write_xml(NameNodeIPAddress);
 
-        }
+        }*/
 
-        public void write_xml(String NameNodeIPAddress)
+     /*  public void write_xml(String NameNodeIPAddress)
         {
        /*     using (XmlWriter writer = XmlWriter.Create("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml"))
             {
@@ -522,7 +728,7 @@ namespace HydraAPI
                 writer.WriteEndDocument();
             }
             */
-            XmlDocument docz = new XmlDocument();
+     /*       XmlDocument docz = new XmlDocument();
             docz.Load("C:\\hadoop-2.3.0\\etc\\hadoop\\core-site.xml");
             XmlNode nodez = docz.DocumentElement;
 
@@ -566,6 +772,9 @@ namespace HydraAPI
             Console.ReadKey();
             System.Environment.Exit(0);
         }
+        */
+
+
 
         public void populate_slaves_file(string[] list_ip){
             string[] ip_list = list_ip;
@@ -852,6 +1061,68 @@ namespace HydraAPI
 
             Console.WriteLine("Finish!");
             Console.ReadKey();
+        }
+
+        public void HA_formatJournalNodes()
+        {
+            string journalNodeFormat = "hdfs namenode -initializeSharedEdits -force";
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(journalNodeFormat);
+
+                Console.WriteLine("Journalnode format success!");
+
+                Console.ReadKey();
+
+
+
+            }
+
+
+        }
+
+        public void HA_getLatestCheckpoint()
+        {
+            string journalNodeFormat = "hdfs namenode -bootstrapStandby -force";
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(journalNodeFormat);
+
+                Console.WriteLine("Successfully copied latest checkpoint success!");
+
+                Console.ReadKey();
+
+
+
+            }
         }
 
         public void HA_setNNToActive(String NameNodeServiceID)
