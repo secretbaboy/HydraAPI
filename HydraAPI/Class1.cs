@@ -60,7 +60,7 @@ namespace HydraAPI
             {
                 write.WriteLine(cmd_hadoop_sbin_path);
                 write.WriteLine(cmd_start_dfs);
-             //  System.Threading.Thread.Sleep(12000);
+               System.Threading.Thread.Sleep(12000);
 
                 // Internet Explorer Launch code 
             /*    try
@@ -126,15 +126,23 @@ namespace HydraAPI
 
         public void formatNameNode()
         {
-            string namenodeFormat = "hdfs namenode -format";
-            if (hadoop_initialize == false)
-            {
-                Console.WriteLine("HAdoop di pa initialize");
-                Console.ReadKey();
-            }
-            else
-            {
+            
+            string hadoopNamespaceDir = @"C:\hadoop";
+            bool directoryExists = Directory.Exists(hadoopNamespaceDir);
 
+              try
+            {
+                if (directoryExists)
+                {
+                Directory.Delete( hadoopNamespaceDir, true);
+                }
+            }
+              catch (Exception e)
+              {
+                  Console.WriteLine("The process failed: {0}", e.Message);
+              }
+            string namenodeFormat = "hdfs namenode -format";
+ 
 
                 Process process = new Process();
 
@@ -146,12 +154,10 @@ namespace HydraAPI
                 write.WriteLine(namenodeFormat);
 
                 Console.WriteLine("Namenode format success!");
-
                 Console.ReadKey();
 
 
-
-            }
+            
 
 
         }
