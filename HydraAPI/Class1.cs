@@ -60,7 +60,7 @@ namespace HydraAPI
             {
                 write.WriteLine(cmd_hadoop_sbin_path);
                 write.WriteLine(cmd_start_dfs);
-               System.Threading.Thread.Sleep(12000);
+             //  System.Threading.Thread.Sleep(12000);
 
                 // Internet Explorer Launch code 
             /*    try
@@ -108,6 +108,8 @@ namespace HydraAPI
 
         }
 
+
+
         public static ProcessStartInfo initializeCmd()
         {
             ProcessStartInfo processStartInfo = new ProcessStartInfo();
@@ -120,6 +122,100 @@ namespace HydraAPI
             return processStartInfo;
 
 
+        }
+
+        public void formatNameNode()
+        {
+            string namenodeFormat = "hdfs namenode -format";
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(namenodeFormat);
+
+                Console.WriteLine("Namenode format success!");
+
+                Console.ReadKey();
+
+
+
+            }
+
+
+        }
+
+        public void formatJournalNodes()
+        {
+            string journalNodeFormat = "hdfs namenode -initializeSharedEdits -force";
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(journalNodeFormat);
+
+                Console.WriteLine("Journalnode format success!");
+
+                Console.ReadKey();
+
+
+
+            }
+
+
+        }
+
+        public void getLatestCheckpoint()
+        {
+            string journalNodeFormat = "hdfs namenode -bootstrapStandby -force";
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(journalNodeFormat);
+
+                Console.WriteLine("Successfully copied latest checkpoint success!");
+
+                Console.ReadKey();
+
+
+
+            }
         }
 
         public void list_all_files_from_folder(String hdfs_file_path)
@@ -499,8 +595,7 @@ namespace HydraAPI
                 writer.WriteStartDocument();
                 writer.WriteStartElement("configuration");
                 writer.WriteStartElement("property");
-
-
+                writer.WriteElementString("name", "fs.defaultFS");
                 writer.WriteElementString("value", NameNodeIPAddress.Insert(0, "hdfs://"));
                 writer.WriteEndElement();
                 writer.WriteEndElement();
@@ -517,7 +612,7 @@ namespace HydraAPI
                 writer.WriteEndElement();
 
                 writer.WriteStartElement("property");
-                writer.WriteElementString("name", "dfs.namenode.data.dir");
+                writer.WriteElementString("name", "dfs.namenode.name.dir");
                 writer.WriteElementString("value", "file:/hadoop/data/dfs/namenode");
                 writer.WriteEndElement();
 
@@ -588,8 +683,301 @@ namespace HydraAPI
             Console.WriteLine("Finish!");
             Console.ReadKey();
         }
-              
 
+        public void setup_hadoop_configs_with_ha(String[] NameNodeIPAddress,String[] JournalNodeIPAddress, String replication_factor,String JNEditsDir)
+        {
+            string six_indents = "            ";
+            string five_indents = "     ";
+
+            string NN1=NameNodeIPAddress[0];
+            string NN2=NameNodeIPAddress[1];
+
+            string JN1 = JournalNodeIPAddress[0];
+            string JN2 = JournalNodeIPAddress[1];
+            string JN3 = JournalNodeIPAddress[2];
+
+            string JNEditsDirectory = JNEditsDir;
+
+            XmlWriterSettings settings = new XmlWriterSettings
+            {
+                Indent = true,
+                IndentChars = "   ",
+                NewLineChars = "\r\n",
+                NewLineHandling = NewLineHandling.Replace
+            };
+
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path + "\\etc\\hadoop\\core-site.xml", settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "fs.defaultFS");
+                writer.WriteElementString("value", "hdfs://mycluster");
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path + "\\etc\\hadoop\\hdfs-site.xml", settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.replication");
+                writer.WriteElementString("value", replication_factor);
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.name.dir");
+                writer.WriteElementString("value", "file:/hadoop/data/dfs/namenode");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.datanode.data.dir");
+                writer.WriteElementString("value", "file:/hadoop/data/dfs/datanode");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.permissions");
+                writer.WriteElementString("value", "false");
+                writer.WriteEndElement();
+
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.webhdfs.enbled");
+                writer.WriteElementString("value", "true");
+                writer.WriteElementString("description", "to enable webhdfs");
+                writer.WriteElementString("final", "true");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.nameservices");
+                writer.WriteElementString("value", "mycluster");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.ha.namenodes.mycluster");
+                writer.WriteElementString("value", "nn1,nn2");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.rpc-address.mycluster.nn1");
+                writer.WriteElementString("value",NN1+":8020"   );
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.rpc-address.mycluster.nn2");
+                writer.WriteElementString("value", NN2 + ":8020");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.http-address.mycluster.nn1");
+                writer.WriteElementString("value", NN1 + ":50070");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.http-address.mycluster.nn2");
+                writer.WriteElementString("value", NN2 + ":50070");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.shared.edits.dir");
+                writer.WriteElementString("value", "qjournal://" + JN1 + ":8485;" + JN2 + ":8485;" + JN3 + ":8485/mycluster");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.client.failover.proxy.provider.mycluster");
+                writer.WriteElementString("value", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.ha.fencing.methods");
+                writer.WriteElementString("value", "shell(/bin/true)");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.journalnode.edits.dir");
+                writer.WriteElementString("value", JNEditsDirectory);
+                writer.WriteEndElement();
+
+
+
+
+                writer.WriteEndElement();
+
+                writer.WriteEndDocument();
+            }
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path + "\\etc\\hadoop\\yarn-site.xml", settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.nodemanager.aux-services");
+                writer.WriteElementString("value", "mapreduce_shuffle");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.nodemanager.aux-services.mapreduce.shuffle.class");
+                writer.WriteElementString("value", "org.apache.hadoop.mapred.ShuffleHandler");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.application.classpath");
+                writer.WriteElementString("value", Environment.NewLine + six_indents + "%HADOOP_HOME%\\etc\\hadoop," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\common\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\common\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\hdfs\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\hdfs\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\mapreduce\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\mapreduce\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\yarn\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\yarn\\lib\\*" +
+                                                   Environment.NewLine + five_indents
+                                                   );
+
+                writer.WriteEndElement();
+
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+
+            Console.WriteLine("Finish!");
+            Console.ReadKey();
+        }
+
+        public void HA_setNNToActive(String NameNodeServiceID)
+        {
+
+            // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+            string transitionToActive = "hdfs haadmin -transitionToActive" + NameNodeServiceID;
+
+
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(transitionToActive);
+                Console.WriteLine("TransitionToActive Success");
+                Console.ReadKey();
+
+
+
+            }
+
+        }
+
+        public void HA_setNNToStandby(String NameNodeServiceID)
+        {
+
+            // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+            string transitionToActive = "hdfs haadmin -transitionToStandby" + NameNodeServiceID;
+
+
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(transitionToActive);
+                Console.WriteLine("TransitionToStandby Success");
+                Console.ReadKey();
+
+
+
+            }
+
+        }
+
+        public void HA_setGracefulFailover(String NameNodeServiceID1, String NameNodeServiceID2)
+        {
+            string NameNodeServiceID_1 = NameNodeServiceID1;
+            string NameNodeServiceID_2 = NameNodeServiceID2;
+
+            // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+            string failover = "hdfs haadmin -failover --forcefence --forceactive " + NameNodeServiceID_1 + " " + NameNodeServiceID_2;
+
+
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(failover);
+                Console.WriteLine("Graceful Failover Success");
+                Console.ReadKey();
+
+
+
+            }
+
+        }
+
+        public void HA_checkNNState(String NameNodeServiceID)
+        {
+            string NameNodeServiceID_1 = NameNodeServiceID;
+
+            // string hadoop_bin_path = "cd " + hadoop_path + "\\bin";
+            string checkState = "hdfs haadmin -getServiceState " + NameNodeServiceID_1;
+
+
+            if (hadoop_initialize == false)
+            {
+                Console.WriteLine("HAdoop di pa initialize");
+                Console.ReadKey();
+            }
+            else
+            {
+
+
+                Process process = new Process();
+                process.StartInfo = initializeCmd();
+                process.Start();
+
+                StreamWriter write = process.StandardInput;
+                write.WriteLine(cmd_hadoop_bin_path);
+                write.WriteLine(checkState);
+                Console.WriteLine("Check Namenode State Success");
+                Console.ReadKey();
+
+
+
+            }
+
+        }
 
 
     }
