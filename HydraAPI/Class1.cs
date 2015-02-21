@@ -17,6 +17,7 @@ namespace HydraAPI
     {
         bool hadoop_initialize = false;
         private string hadoop_path;
+        private string zookeeper_path;
         private string hadoop_bin_path;
         private string hadoop_sbin_path;
 
@@ -24,9 +25,10 @@ namespace HydraAPI
         private string cmd_hadoop_bin_path;
 
 
-        public Initialize(string hadoop_path)
+        public Initialize(string hadoop_path, string zookeeper_path)
         {
             this.hadoop_path = hadoop_path;
+            this.zookeeper_path = zookeeper_path.Replace(@"\",@"/");
             hadoop_bin_path = hadoop_path + "\\bin";
             hadoop_sbin_path = hadoop_path + "\\sbin";
 
@@ -1028,7 +1030,7 @@ namespace HydraAPI
 
                 writer.WriteStartElement("property");
                 writer.WriteElementString("name", "dfs.ha.fencing.methods");
-                writer.WriteElementString("value", "shell(/bin/true)");
+                writer.WriteElementString("value", "shell("+hadoop_sbin_path+"stop-dfs.cmd");
                 writer.WriteEndElement();
 
                 writer.WriteStartElement("property");
@@ -1038,6 +1040,212 @@ namespace HydraAPI
 
 
 
+
+                writer.WriteEndElement();
+
+                writer.WriteEndDocument();
+            }
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path + "\\etc\\hadoop\\yarn-site.xml", settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.nodemanager.aux-services");
+                writer.WriteElementString("value", "mapreduce_shuffle");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.nodemanager.aux-services.mapreduce.shuffle.class");
+                writer.WriteElementString("value", "org.apache.hadoop.mapred.ShuffleHandler");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "yarn.application.classpath");
+                writer.WriteElementString("value", Environment.NewLine + six_indents + "%HADOOP_HOME%\\etc\\hadoop," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\common\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\common\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\hdfs\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\hdfs\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\mapreduce\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\mapreduce\\lib\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\yarn\\*," +
+                                                   Environment.NewLine + six_indents + "%HADOOP_HOME%\\share\\hadoop\\yarn\\lib\\*" +
+                                                   Environment.NewLine + five_indents
+                                                   );
+
+                writer.WriteEndElement();
+
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+
+            Console.WriteLine("Finish!");
+            Console.ReadKey();
+        }
+
+        public void ZK_setup_hadoop_configs_with_ha(String[] NameNodeIPAddress, String[] JournalNodeIPAddress, String[] ZookeeperIPAddress, String replication_factor, String JNEditsDir)
+        {
+            string six_indents = "            ";
+            string five_indents = "     ";
+
+            string NN1 = NameNodeIPAddress[0];
+            string NN2 = NameNodeIPAddress[1];
+
+            string[] JNs = JournalNodeIPAddress;
+
+            string[] ZKs = ZookeeperIPAddress;
+
+
+            string JNEditsDirectory = JNEditsDir;
+
+            XmlWriterSettings settings = new XmlWriterSettings
+            {
+                Indent = true,
+                IndentChars = "   ",
+                NewLineChars = "\r\n",
+                NewLineHandling = NewLineHandling.Replace
+            };
+
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path + "\\etc\\hadoop\\core-site.xml", settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "fs.defaultFS");
+                writer.WriteElementString("value", "hdfs://mycluster");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "ha.zookeeper.quorum");
+                string zookeeperQuroum = string.Empty;
+                foreach (string value in ZKs)
+                {
+
+                    zookeeperQuroum = zookeeperQuroum + value + ":2181;";
+
+                }
+                writer.WriteElementString("value", zookeeperQuroum);
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+
+
+                writer.WriteEndDocument();
+            }
+            using (XmlWriter writer = XmlWriter.Create(hadoop_path + "\\etc\\hadoop\\hdfs-site.xml", settings))
+            {
+
+                writer.WriteStartDocument();
+                writer.WriteStartElement("configuration");
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.replication");
+                writer.WriteElementString("value", replication_factor);
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.name.dir");
+                writer.WriteElementString("value", "file:/hadoop/data/dfs/namenode");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.datanode.data.dir");
+                writer.WriteElementString("value", "file:/hadoop/data/dfs/datanode");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.permissions");
+                writer.WriteElementString("value", "false");
+                writer.WriteEndElement();
+
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.webhdfs.enbled");
+                writer.WriteElementString("value", "true");
+                writer.WriteElementString("description", "to enable webhdfs");
+                writer.WriteElementString("final", "true");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.nameservices");
+                writer.WriteElementString("value", "mycluster");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.ha.namenodes.mycluster");
+                writer.WriteElementString("value", "nn1,nn2");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.rpc-address.mycluster.nn1");
+                writer.WriteElementString("value", NN1 + ":8020");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.rpc-address.mycluster.nn2");
+                writer.WriteElementString("value", NN2 + ":8020");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.http-address.mycluster.nn1");
+                writer.WriteElementString("value", NN1 + ":50070");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.http-address.mycluster.nn2");
+                writer.WriteElementString("value", NN2 + ":50070");
+                writer.WriteEndElement();
+
+
+   
+                int JNindex = JNs.Length - 1;
+                int JNctr =0;
+
+                string sharedEditsDir = string.Empty;
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.namenode.shared.edits.dir");
+               // writer.WriteElementString("value", "qjournal://" + JN1 + ":8485;" + JN2 + ":8485;" + JN3 + ":8485/mycluster");
+
+                foreach (string value in JNs)
+                {
+                    if (JNctr == JNindex)
+                    {
+                        sharedEditsDir = sharedEditsDir + value + ":8485/mycluster";
+                       
+                    }
+                    else
+                    {
+                        sharedEditsDir = sharedEditsDir + value + ":8485;";
+                        
+                    }
+                    JNctr++;
+                }
+                writer.WriteElementString("value", "qjournal://"+sharedEditsDir);
+
+
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.client.failover.proxy.provider.mycluster");
+                writer.WriteElementString("value", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.ha.fencing.methods");
+                writer.WriteElementString("value", "shell(" + hadoop_sbin_path + "stop-dfs.cmd");
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.journalnode.edits.dir");
+                writer.WriteElementString("value", JNEditsDirectory);
+                writer.WriteEndElement();
+
+                writer.WriteStartElement("property");
+                writer.WriteElementString("name", "dfs.ha.automatic-failover.enabled");
+                writer.WriteElementString("value", "true");
+                writer.WriteEndElement();
 
                 writer.WriteEndElement();
 
@@ -1276,7 +1484,62 @@ namespace HydraAPI
 
         }
 
+        public void ZK_setup_zookeeper(String[] serverIPAddress,String serverID,String maxClientConnections)
+        {
+            string[] serverIPs = serverIPAddress;
+            string id_server = serverID;
+            int index=1;
+              
+                    if (!System.IO.Directory.Exists(zookeeper_path+"/data"))
+                    {
+                        System.IO.Directory.CreateDirectory(zookeeper_path+"/data");
+                        if(!System.IO.File.Exists(zookeeper_path+"/data/myid"))
+                        {
+                            System.IO.File.Create(zookeeper_path + "/data/myid").Close();
+                           
+                        }
+                      
+                    }
 
-    }
+                    using (StreamWriter writer2 = new StreamWriter(zookeeper_path + "/data/myid"))
+                    {
+                        writer2.WriteLine(id_server);
+                    }
 
-}
+                     if(!System.IO.File.Exists(zookeeper_path+"/conf/zoo.cfg"))
+                        {
+                            System.IO.File.Create(zookeeper_path + "/conf/zoo.cfg").Close();
+                           
+                        }
+                     
+                    using (StreamWriter writer = new StreamWriter(zookeeper_path + "/conf/zoo.cfg"))
+                        {
+                    
+
+                        writer.WriteLine("tickTime=2000");
+                        writer.WriteLine("initLimit=10");
+                        writer.WriteLine("syncLimit=5");
+
+                        writer.WriteLine("dataDir="+zookeeper_path+"/data");
+                        writer.WriteLine("clientPort=2181");
+                        writer.WriteLine("maxClientCnxns="+maxClientConnections);
+                        foreach (string value in serverIPs)
+                        {
+                            writer.WriteLine("server."+index+"="+value+":2888:3888");
+                            index++;
+                        }
+                        
+                    
+                 
+
+                }
+ 
+                }
+
+        }
+        }
+
+
+  
+
+
