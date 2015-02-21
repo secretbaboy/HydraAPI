@@ -929,9 +929,7 @@ namespace HydraAPI
             string NN1=NameNodeIPAddress[0];
             string NN2=NameNodeIPAddress[1];
 
-            string JN1 = JournalNodeIPAddress[0];
-            string JN2 = JournalNodeIPAddress[1];
-            string JN3 = JournalNodeIPAddress[2];
+            string[] JNs = JournalNodeIPAddress;
 
             string JNEditsDirectory = JNEditsDir;
 
@@ -1018,9 +1016,31 @@ namespace HydraAPI
                 writer.WriteElementString("value", NN2 + ":50070");
                 writer.WriteEndElement();
 
+
+                int JNindex = JNs.Length - 1;
+                int JNctr = 0;
+
+                string sharedEditsDir = string.Empty;
+
                 writer.WriteStartElement("property");
                 writer.WriteElementString("name", "dfs.namenode.shared.edits.dir");
-                writer.WriteElementString("value", "qjournal://" + JN1 + ":8485;" + JN2 + ":8485;" + JN3 + ":8485/mycluster");
+                // writer.WriteElementString("value", "qjournal://" + JN1 + ":8485;" + JN2 + ":8485;" + JN3 + ":8485/mycluster");
+
+                foreach (string value in JNs)
+                {
+                    if (JNctr == JNindex)
+                    {
+                        sharedEditsDir = sharedEditsDir + value + ":8485/mycluster";
+
+                    }
+                    else
+                    {
+                        sharedEditsDir = sharedEditsDir + value + ":8485;";
+
+                    }
+                    JNctr++;
+                }
+                writer.WriteElementString("value", "qjournal://" + sharedEditsDir);
                 writer.WriteEndElement();
 
                 writer.WriteStartElement("property");
